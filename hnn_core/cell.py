@@ -301,6 +301,7 @@ class Cell:
         self.sect_loc = sect_loc
         self._nrn_sections = dict()
         self._nrn_synapses = dict()
+        self._xsyn = None # one from above list for record help
         self.dipole_pp = list()
         self.rec_v = h.Vector()
         self.rec_i = dict()
@@ -362,8 +363,9 @@ class Cell:
             for receptor in sections[sec_name].syns:
                 syn_key = f'{sec_name}_{receptor}'
                 seg = self._nrn_sections[sec_name](0.5)
-                self._nrn_synapses[syn_key] = self.syn_create(
+                self._xsyn = self.syn_create(
                     seg, **synapses[receptor])
+                self._nrn_synapses[syn_key] = self._xsyn
 
     def _create_sections(self, sections, topology):
         """Create soma and set geometry.
@@ -457,6 +459,7 @@ class Cell:
         sec_name_apical : str
             The name of the section along which dipole moment is calculated.
         """
+        return
         self.dpl_vec = h.Vector(1)
         self.dpl_ref = self.dpl_vec._ref_x[0]
         cos_thetas = _get_cos_theta(self.sections, 'apical_trunk')
@@ -500,7 +503,7 @@ class Cell:
                 sect(pos).dipole.ztan = seg_lens_z[idx]
             # set the pp dipole's ztan value to the last value from seg_lens_z
             dpp.ztan = seg_lens_z[-1]
-        self.dipole = h.Vector().record(self.dpl_ref)
+        self.dipole = h.Vector().record(self._xsyn, self.dpl_ref)
 
     def create_tonic_bias(self, amplitude, t0, tstop, loc=0.5):
         """Create tonic bias at the soma.

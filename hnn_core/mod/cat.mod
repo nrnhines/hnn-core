@@ -52,7 +52,7 @@ DERIVATIVE states {
 
 UNITSOFF
 PROCEDURE settables(v) {
-    TABLE minf, mtau, hinf, htau FROM -120 TO 40 WITH 641
+    :TABLE minf, mtau, hinf, htau FROM -120 TO 40 WITH 641
 
     minf  = 1 / (1 + exp(( -v - 56 ) / 6.2))
     mtau  = 0.204 + 0.333 / (exp(( v + 15.8) / 18.2) + exp((-v - 131) / 16.7))

@@ -22,7 +22,8 @@ NEURON {
     RANGE n, gk, gbar
     RANGE ninf, ntau
     GLOBAL Ra, Rb
-    GLOBAL q10, temp, tadj, vmin, vmax, tshift
+    GLOBAL q10, temp, vmin, vmax, tshift
+    RANGE tadj
 }
 
 UNITS {
@@ -82,6 +83,7 @@ STATE {
 }
 
 INITIAL {
+    tadj = q10^((celsius - temp - tshift) / 10)
     trates(v)
     n = ninf
 }
@@ -103,10 +105,10 @@ DERIVATIVE states {
 : Computes rate and other constants at current v.
 : Call once from HOC to initialize inf at resting v.
 PROCEDURE trates(v) {
-    TABLE ninf, ntau
-    DEPEND  celsius, temp, Ra, Rb, tha, qa
+    :TABLE ninf, ntau
+    :DEPEND  celsius, temp, Ra, Rb, tha, qa
 
-    FROM vmin TO vmax WITH 199
+    :FROM vmin TO vmax WITH 199
 
     : not consistently executed from here if usetable_hh == 1
     rates(v)
@@ -120,7 +122,6 @@ PROCEDURE rates(v) {
     a = Ra * (v - tha) / (1 - exp(-(v - tha) / qa))
     b = -Rb * (v - tha) / (1 - exp((v - tha) / qa))
 
-    tadj = q10^((celsius - temp - tshift) / 10)
     ntau = 1/tadj/(a+b)
     ninf = a/(a+b)
 }

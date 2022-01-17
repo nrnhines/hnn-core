@@ -12,7 +12,7 @@ from neuron import h
 # This is due to: https://github.com/neuronsimulator/nrn/pull/746
 from neuron import __version__
 if int(__version__[0]) >= 8:
-    h.nrnunit_use_legacy(1)
+    h.nrnunit_use_legacy(0)
 
 from .cell import _ArtificialCell
 from .params import _long_name, _short_name
@@ -64,6 +64,16 @@ def _simulate_single_trial(net, tstop, dt, trial_idx):
     # sets the default max solver step in ms (purposefully large)
     _PC.set_maxstep(10)
 
+    def spikeout(fname, spiketimes, gids):
+        file = open(fname, "w")
+        for i, t in enumerate(spiketimes):
+          file.write("%.7f %g\n" %(t, gids[i]))
+        file.close()
+
+    z_spikes = h.Vector()
+    z_gids = h.Vector()
+    _PC.spike_record(-1, z_spikes, z_gids)
+
     # initialize cells to -65 mV, after all the NetCon
     # delays have been specified
     h.finitialize()
@@ -81,9 +91,14 @@ def _simulate_single_trial(net, tstop, dt, trial_idx):
     _PC.barrier()
 
     # actual simulation - run the solver
+    print("begin psolve %gms %d threads "%(h.tstop, int(_PC.nthread())))
+    z = h.startsw()
     _PC.psolve(h.tstop)
+    print("end psolve elapsed ", h.startsw() - z)
+    spikeout('spk.txt', z_spikes, z_gids)
 
     _PC.barrier()
+    quit()
 
     # these calls aggregate data across procs/nodes
     neuron_net.aggregate_data()

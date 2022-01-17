@@ -1,3 +1,11 @@
+from neuron import h
+pc = h.ParallelContext()
+from neuron import coreneuron
+coreneuron.enable=False
+h.CVode().cache_efficient(1)
+pc.nthread(1)
+ztstop = 40 # original below was 170.
+
 """
 =======================
 01. Plot firing pattern
@@ -72,7 +80,7 @@ net.add_evoked_drive(
     weights_ampa=weights_ampa_p2, location='proximal',
     synaptic_delays=synaptic_delays_prox, event_seed=4)
 
-dpls = simulate_dipole(net, tstop=170., record_vsoma=True)
+dpls = simulate_dipole(net, tstop=ztstop, record_vsoma=True)
 
 ###############################################################################
 # Here, we explain more details about the data structures and how they can

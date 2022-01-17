@@ -21,7 +21,8 @@ NEURON {
     USEION ca READ eca WRITE ica
     RANGE m, h, gca, gbar
     RANGE minf, hinf, mtau, htau
-    GLOBAL q10, temp, tadj, vmin, vmax, vshift, tshift
+    GLOBAL q10, temp, vmin, vmax, vshift, tshift
+    RANGE tadj
 }
 
 PARAMETER {
@@ -64,6 +65,7 @@ ASSIGNED {
 STATE { m h }
 
 INITIAL {
+    tadj = q10^((celsius - temp - tshift)/10)
     trates(v+vshift)
     m = minf
     h = hinf
@@ -93,10 +95,10 @@ DERIVATIVE states {
 }
 
 PROCEDURE trates(v) {
-    TABLE minf, hinf, mtau, htau
-    DEPEND  celsius, temp
+    :TABLE minf, hinf, mtau, htau
+    :DEPEND  celsius, temp
 
-    FROM vmin TO vmax WITH 199
+    :FROM vmin TO vmax WITH 199
 
     : not consistently executed from here if usetable == 1
     rates(v)
@@ -110,7 +112,6 @@ PROCEDURE trates(v) {
 PROCEDURE rates(vm) {
     LOCAL a, b
 
-    tadj = q10^((celsius - temp - tshift)/10)
 
     a = 0.055 * (-27 - vm) / (exp((-27 - vm) / 3.8) - 1)
     b = 0.94 * exp((-75 - vm) / 17)
