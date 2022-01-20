@@ -459,7 +459,6 @@ class Cell:
         sec_name_apical : str
             The name of the section along which dipole moment is calculated.
         """
-        return
         self.dpl_vec = h.Vector(1)
         self.dpl_ref = self.dpl_vec._ref_x[0]
         cos_thetas = _get_cos_theta(self.sections, 'apical_trunk')
@@ -503,6 +502,28 @@ class Cell:
                 sect(pos).dipole.ztan = seg_lens_z[idx]
             # set the pp dipole's ztan value to the last value from seg_lens_z
             dpp.ztan = seg_lens_z[-1]
+        self.dipole = h.Vector().record(self._xsyn, self.dpl_ref)
+
+    def update_pointers(self):
+        if len(self.dipole_pp) == 0:
+            return
+        for idpp, sect_name in enumerate(self.sections):
+            sect = self._nrn_sections[sect_name]
+            dpp = self.dipole_pp[idpp]
+            # sets pointers in dipole mod file to the correct locations
+            dpp._ref_pv = sect(0.99)._ref_v
+            dpp._ref_Qtotal = self.dpl_ref
+            # gives INTERNAL segments of the section, non-endpoints
+            # creating this because need multiple values simultaneously
+            pos_all = np.array([seg.x for seg in sect.allseg()])
+            for idx, pos in enumerate(pos_all[1:-1]):
+                # set pointers to previous segment's voltage, with
+                # boundary condition
+                sect(pos).dipole._ref_pv = sect(pos_all[idx])._ref_v
+
+                # set aggregate pointers
+                sect(pos).dipole._ref_Qsum = dpp._ref_Qsum
+                sect(pos).dipole._ref_Qtotal = self.dpl_ref
         self.dipole = h.Vector().record(self._xsyn, self.dpl_ref)
 
     def create_tonic_bias(self, amplitude, t0, tstop, loc=0.5):

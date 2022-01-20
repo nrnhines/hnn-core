@@ -358,8 +358,19 @@ class NetworkBuilder(object):
         if len(self.net.rec_arrays) > 0:
             self._record_extracellular()
 
+        # Setup callback to update dipole POINTER for cache_efficiency
+        # The PtrVector is used only to support the callback.
+        self._callback_setup = h.PtrVector(1)
+        self._callback_setup.ptr_update_callback(self.dipole_pointer_update)
+        print("register dipole_pointer_update")
+
         if self._rank == 0:
             print('[Done]')
+
+    def dipole_pointer_update(self):
+        print("dipole_pointer_update called")
+        for cell in self._cells:
+            cell.update_pointers()
 
     def _gid_assign(self, rank=None, n_hosts=None):
         """Assign cell IDs to this node
