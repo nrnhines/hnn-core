@@ -1,0 +1,11 @@
+NEURON {
+  THREADSAFE
+  POINT_PROCESS QTotal
+  RANGE q
+}
+
+ASSIGNED { q }
+
+BEFORE INITIAL {
+  q = 0
+}

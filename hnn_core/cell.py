@@ -301,7 +301,6 @@ class Cell:
         self.sect_loc = sect_loc
         self._nrn_sections = dict()
         self._nrn_synapses = dict()
-        self._xsyn = None # one from above list for record help
         self.dipole_pp = list()
         self.rec_v = h.Vector()
         self.rec_i = dict()
@@ -363,9 +362,8 @@ class Cell:
             for receptor in sections[sec_name].syns:
                 syn_key = f'{sec_name}_{receptor}'
                 seg = self._nrn_sections[sec_name](0.5)
-                self._xsyn = self.syn_create(
+                self._nrn_synapses[syn_key] = self.syn_create(
                     seg, **synapses[receptor])
-                self._nrn_synapses[syn_key] = self._xsyn
 
     def _create_sections(self, sections, topology):
         """Create soma and set geometry.
@@ -459,8 +457,10 @@ class Cell:
         sec_name_apical : str
             The name of the section along which dipole moment is calculated.
         """
-        self.dpl_vec = h.Vector(1)
-        self.dpl_ref = self.dpl_vec._ref_x[0]
+        # 1 per Cell for dipole of whole cell
+        sect = self._nrn_sections[list(self.sections.keys())[0]]
+        self.dpl_qtotal = h.QTotal(sect(.5))
+        dpl_ref = self.dpl_qtotal._ref_q
         cos_thetas = _get_cos_theta(self.sections, 'apical_trunk')
 
         # setting pointers and ztan values
@@ -473,7 +473,7 @@ class Cell:
             dpp.ri = h.ri(1, sec=sect)  # assign internal resistance
             # sets pointers in dipole mod file to the correct locations
             dpp._ref_pv = sect(0.99)._ref_v
-            dpp._ref_Qtotal = self.dpl_ref
+            dpp._ref_Qtotal = dpl_ref
             # gives INTERNAL segments of the section, non-endpoints
             # creating this because need multiple values simultaneously
             pos_all = np.array([seg.x for seg in sect.allseg()])
@@ -497,22 +497,23 @@ class Cell:
 
                 # set aggregate pointers
                 sect(pos).dipole._ref_Qsum = dpp._ref_Qsum
-                sect(pos).dipole._ref_Qtotal = self.dpl_ref
+                sect(pos).dipole._ref_Qtotal = dpl_ref
                 # add ztan values
                 sect(pos).dipole.ztan = seg_lens_z[idx]
             # set the pp dipole's ztan value to the last value from seg_lens_z
             dpp.ztan = seg_lens_z[-1]
-        self.dipole = h.Vector().record(self._xsyn, self.dpl_ref)
+        self.dipole = h.Vector().record(self.dpl_qtotal, dpl_ref)
 
     def update_pointers(self):
         if len(self.dipole_pp) == 0:
             return
+        dpl_ref = self.dpl_qtotal._ref_q
         for idpp, sect_name in enumerate(self.sections):
             sect = self._nrn_sections[sect_name]
             dpp = self.dipole_pp[idpp]
             # sets pointers in dipole mod file to the correct locations
             dpp._ref_pv = sect(0.99)._ref_v
-            dpp._ref_Qtotal = self.dpl_ref
+            dpp._ref_Qtotal = dpl_ref
             # gives INTERNAL segments of the section, non-endpoints
             # creating this because need multiple values simultaneously
             pos_all = np.array([seg.x for seg in sect.allseg()])
@@ -523,8 +524,8 @@ class Cell:
 
                 # set aggregate pointers
                 sect(pos).dipole._ref_Qsum = dpp._ref_Qsum
-                sect(pos).dipole._ref_Qtotal = self.dpl_ref
-        self.dipole = h.Vector().record(self._xsyn, self.dpl_ref)
+                sect(pos).dipole._ref_Qtotal = dpl_ref
+        self.dipole = h.Vector().record(self.dpl_qtotal, dpl_ref)
 
     def create_tonic_bias(self, amplitude, t0, tstop, loc=0.5):
         """Create tonic bias at the soma.
